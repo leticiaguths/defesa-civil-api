@@ -920,8 +920,33 @@ window.addEventListener('resize', () => {
     "Qual o número da Defesa Civil?"
   ];
 
-  const GEMINI_KEY = 'AIzaSyAa-yGQG0BIXqXkxY9E245ifI5eceSIGts';
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+  let GEMINI_KEY = sessionStorage.getItem('gemini_key') || '';
+  const API_URL = (key) => `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+
+  function askForKey() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;display:flex;align-items:center;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:#1a0a0a;border:1px solid rgba(230,57,70,0.4);border-radius:16px;padding:28px;width:300px;text-align:center;">
+        <div style="font-family:Bebas Neue,sans-serif;font-size:20px;letter-spacing:2px;color:#e63946;margin-bottom:8px;">🛡️ DEFESA CIVIL</div>
+        <div style="font-size:12px;color:#888;margin-bottom:16px;">Digite a chave de acesso para ativar o assistente</div>
+        <input id="key-input" type="password" placeholder="Cole sua API Key aqui" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:10px;color:#fff;font-size:12px;outline:none;margin-bottom:12px;">
+        <button id="key-btn" style="width:100%;background:#e63946;border:none;border-radius:8px;padding:10px;color:#fff;font-family:Inter,sans-serif;font-size:12px;font-weight:600;cursor:pointer;">ATIVAR ASSISTENTE</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('key-btn').onclick = () => {
+      const val = document.getElementById('key-input').value.trim();
+      if (!val) return;
+      GEMINI_KEY = val;
+      sessionStorage.setItem('gemini_key', val);
+      overlay.remove();
+      showWelcome();
+    };
+    document.getElementById('key-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('key-btn').click();
+    });
+    setTimeout(() => document.getElementById('key-input').focus(), 100);
+  }
 
   function addMsg(text, type) {
     const div = document.createElement('div');
@@ -947,6 +972,7 @@ window.addEventListener('resize', () => {
   }
 
   function showWelcome() {
+    if (!GEMINI_KEY) { askForKey(); return; }
     if (msgs.children.length === 0) {
       addMsg('Olá! Sou o assistente virtual da Defesa Civil. Como posso ajudar você hoje?', 'bot');
       addSuggestions();
@@ -966,7 +992,7 @@ window.addEventListener('resize', () => {
     const typing = addMsg('Analisando...', 'bot typing');
 
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(API_URL(GEMINI_KEY), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
