@@ -27,7 +27,12 @@ app.get('/leituras', async (req, res) => {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute('SELECT * FROM leituras_estufa ORDER BY criado_em DESC LIMIT 500');
     await conn.end();
-    res.json(rows);
+    const resultado = rows.map(r => ({
+  ...r,
+  temperatura: parseFloat(r.temperatura),
+  umidade: parseFloat(r.umidade)
+}));
+res.json(resultado);
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
@@ -38,7 +43,11 @@ app.get('/alertas', async (req, res) => {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute('SELECT * FROM alertas_estufa ORDER BY criado_em DESC LIMIT 200');
     await conn.end();
-    res.json(rows);
+    const resultado = rows.map(r => ({
+  ...r,
+  temperatura: parseFloat(r.temperatura)
+}));
+res.json(resultado);
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
