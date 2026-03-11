@@ -43,8 +43,12 @@ app.get('/alertas', async (req, res) => {
   try {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute('SELECT * FROM alertas_estufa ORDER BY criado_em DESC LIMIT 200');
-    await conn.end();
-    res.json(rows);
+await conn.end();
+const resultado = rows.map(r => ({
+  ...r,
+  temperatura: parseFloat(r.temperatura)
+}));
+res.json(resultado);
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
