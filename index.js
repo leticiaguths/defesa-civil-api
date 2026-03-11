@@ -25,14 +25,15 @@ app.get('/', (req, res) => {
 app.get('/leituras', async (req, res) => {
   try {
     const conn = await mysql.createConnection(dbConfig);
-    const [rows] = await conn.execute('SELECT * FROM leituras_estufa ORDER BY criado_em DESC LIMIT 500');
+    const [rows] = await conn.execute('SELECT id, CAST(temperatura AS DECIMAL(10,2)) as temperatura, CAST(umidade AS DECIMAL(10,2)) as umidade, alerta, criado_em FROM leituras_estufa ORDER BY criado_em DESC LIMIT 500');
     await conn.end();
-    const resultado = rows.map(r => ({
-  ...r,
-  temperatura: parseFloat(r.temperatura),
-  umidade: parseFloat(r.umidade)
-}));
-res.json(resultado);
+    res.json(rows.map(r => ({
+      id: Number(r.id),
+      temperatura: Number(r.temperatura),
+      umidade: Number(r.umidade),
+      alerta: Number(r.alerta),
+      criado_em: r.criado_em
+    })));
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
@@ -43,11 +44,7 @@ app.get('/alertas', async (req, res) => {
     const conn = await mysql.createConnection(dbConfig);
     const [rows] = await conn.execute('SELECT * FROM alertas_estufa ORDER BY criado_em DESC LIMIT 200');
     await conn.end();
-    const resultado = rows.map(r => ({
-  ...r,
-  temperatura: parseFloat(r.temperatura)
-}));
-res.json(resultado);
+    res.json(rows);
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
@@ -59,15 +56,22 @@ app.get('/resumo', async (req, res) => {
     const [[stats]] = await conn.execute(`
       SELECT 
         COUNT(*) as total_leituras,
-        ROUND(AVG(temperatura), 2) as temp_media,
-        ROUND(MAX(temperatura), 2) as temp_maxima,
-        ROUND(MIN(temperatura), 2) as temp_minima,
-        ROUND(AVG(umidade), 2) as umidade_media,
+        ROUND(AVG(CAST(temperatura AS DECIMAL(10,2))), 2) as temp_media,
+        ROUND(MAX(CAST(temperatura AS DECIMAL(10,2))), 2) as temp_maxima,
+        ROUND(MIN(CAST(temperatura AS DECIMAL(10,2))), 2) as temp_minima,
+        ROUND(AVG(CAST(umidade AS DECIMAL(10,2))), 2) as umidade_media,
         SUM(alerta) as total_alertas
       FROM leituras_estufa
     `);
     await conn.end();
-    res.json(stats);
+    res.json({
+      total_leituras: Number(stats.total_leituras),
+      temp_media: Number(stats.temp_media),
+      temp_maxima: Number(stats.temp_maxima),
+      temp_minima: Number(stats.temp_minima),
+      umidade_media: Number(stats.umidade_media),
+      total_alertas: Number(stats.total_alertas)
+    });
   } catch (err) {
     res.status(500).json({ erro: err.message });
   }
